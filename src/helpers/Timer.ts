@@ -1,7 +1,7 @@
 type TTimerId = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval> | null
 type TTimerCallback = (...args: unknown[]) => unknown
 type TDebouncerResult = (...args: unknown[]) => TTimerId
-type TThrottlerResult = (...args: unknown[]) => TTimerId
+type TThrottlerResult = (...args: unknown[]) => unknown
 
 function setTimer(callback: TTimerCallback, timeout: number = 0): TTimerId {
   if (typeof callback !== 'function') {
@@ -69,20 +69,16 @@ function useThrottler(callback: TTimerCallback, timeout: number = 0): TThrottler
     throw new Error('useThrottler: No callback')
   }
 
-  let timerId: TTimerId
+  let isItNow = true
 
   return (...args: unknown[]) => {
-    if (timerId) {
-      return timerId
-    }
-
-    timerId = resetTimer(timerId, () => {
+    if (isItNow) {
       callback(...args)
 
-      timerId = null
-    }, timeout)
+      isItNow = false
 
-    return timerId
+      setTimer(() => (isItNow = true), timeout)
+    }
   }
 }
 
