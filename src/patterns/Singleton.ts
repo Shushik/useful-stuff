@@ -4,7 +4,7 @@ export default class Singleton {
 
   protected static _instance: Singleton | null = null
 
-  protected constructor() {
+  protected constructor(..._args: unknown[]) {
     const self = new.target
 
     if (self._instance) {
@@ -14,8 +14,8 @@ export default class Singleton {
     self._instance = this
   }
 
-  static getInstance() {
-    return new this()
+  static getInstance(...args: unknown[]) {
+    return new this(...args)
   }
 
 }
