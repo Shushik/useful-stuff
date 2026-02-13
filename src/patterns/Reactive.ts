@@ -11,6 +11,8 @@ let activeEffect: IEffect | null = null
 // Common observers key counter
 let observersKey: number = 0
 
+// TODO: useComputed(), useRef()
+
 export function useWatch<TValue = unknown>(rawGetter: TGetter<TValue>, rawEffect: TEffect) {
   const target = rawGetter()
   const listener = rawEffect
@@ -119,5 +121,6 @@ export function useReactive<TValue = unknown>(rawValue: TValue) {
   // Root object
   const target: { value: TValue } = { value: rawValue }
 
+  // Let it begin
   return proxifyObject<TValue>(target, target, observers, proxied, '')
 }
