@@ -168,6 +168,7 @@ function proxifyObject<TValue = unknown>(
   proxied: TProxied,
   rootObserverKey: string
 ) {
+  // Observer key for object listeners
   const observerKey = getObserverKey()
 
   return new Proxy(target, {
@@ -179,6 +180,7 @@ function proxifyObject<TValue = unknown>(
 
       // If internal property is object, it should be proxied
       if (typeof val === 'object' && val !== null && !proxied.has(target)) {
+        // Proxify object
         val = proxifyObject<TValue>(
           rootVal,
           val,
@@ -187,13 +189,15 @@ function proxifyObject<TValue = unknown>(
           rootObserverKey ? rootObserverKey : observerKey
         )
 
+        // Remember proxied object for further checks
         proxied.add(target)
 
+        // Save proxied object in a place of unproxied
         Reflect.set(obj, key, val, rec)
       }
 
-      // If some activeEffect is set, it should be added
-      // to observers list
+      // If some activeEffect or activeComputed listener is set,
+      // it should be added to observers list
       if (activeComputed || (activeEffect && val === activeEffect.target)) {
         defineListener(observers, `${observerKey}.${key as string}`)
       }
@@ -206,7 +210,9 @@ function proxifyObject<TValue = unknown>(
       newVal: TValue,
       rec
     ): boolean {
+      // Get an old value for comparison with the new one
       const oldVal = Reflect.get(obj, key, rec)
+      // Save new value if it's not equal to an old one
       const res = newVal !== oldVal ? Reflect.set(obj, key, newVal) : true
 
       // Try to trigger listeners from observers list
