@@ -31,11 +31,16 @@ describe('PHPDate and date helpers', () => {
     const H = helpFormatTimeunit(now.getHours())
     const i = helpFormatTimeunit(now.getMinutes())
     const s = helpFormatTimeunit(now.getSeconds())
+    const ampm = 'PM'
+    const wday = 'Sat'
+    const month = 'Feb'
 
     // Using known symbols
     expect(phpDate('Y-m-d H:i:s', now)).toBe(`${Y}-${m}-${d} ${H}:${i}:${s}`)
     // Using unknown symbols
     expect(phpDate('O')).toBe('O')
+    // Testing literals
+    expect(phpDate('AMD')).toBe(`${ampm}${month}${wday}`)
   })
 
 })

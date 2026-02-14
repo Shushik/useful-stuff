@@ -142,7 +142,7 @@ function getDateParts(): { [id: string ]: TDatePart }  {
     ),
     // Full numeric representation of a year,
     Y: (rd, t) => rd.getFullYear(),
-    // O: (d, t) => (this as Dictionary<(r: Date) => number | string>).Z(r),
+    // O: (rd, t) => (this as Dictionary<(r: Date) => number | string>).Z(rd),
     // Timezone offset in seconds
     Z: (rd, t) => rd.getTimezoneOffset() * 60,
     // Lowercase Ante meridiem and Post meridiem
