@@ -1,11 +1,14 @@
+import { vi } from 'vitest'
 import { phpDate } from '@/helpers/PHPDate'
 import {
   getDaysInYear,
   getDaysInMonth,
   formatTimeunit,
+  checkIsHoliday,
   checkIsWeekend,
   checkIsYearLeap,
-  checkIsDateValid
+  checkIsDateValid,
+  clearHolidaysCache,
 } from '@/helpers/Date'
 
 describe('PHPDate and date helpers', () => {
@@ -68,6 +71,53 @@ describe('PHPDate and date helpers', () => {
     expect(phpDate('O', now)).toBe('O')
     // Testing literals
     expect(phpDate('AMD', now)).toBe(`${ampm}${month}${wday}`)
+  })
+
+  it('Should check if given date is holiday or not', () => {
+    const firstJan = {
+      isHoliday: true,
+      date: '1983-01-01T00:00:00'
+    }
+    const secondJan = {
+      date: 412894800000
+    }
+    const thirdJan = {
+      isHoliday: false,
+      date: new Date(1983, 0, 3)
+    }
+    const holidaysArr = vi.fn(() => [
+      firstJan,
+      secondJan,
+      thirdJan
+    ])
+    const holidaysObj = vi.fn(() => ({
+      firstJan,
+      secondJan,
+      thirdJan
+    }))
+    const holiday1 = '1983-01-01T00:00:00'
+    const holiday2 = 410302800000
+    const notHoliday1 = new Date(1983, 0, 3)
+    const notHoliday2 = new Date(1983, 1, 16)
+
+    // Check with array and object
+    expect(checkIsHoliday(holiday1, holidaysArr)).toBeTruthy()
+    expect(checkIsHoliday(holiday2, holidaysArr)).toBeTruthy()
+    expect(checkIsHoliday(notHoliday1, holidaysObj)).toBeFalsy()
+    expect(checkIsHoliday(notHoliday2, holidaysObj)).toBeFalsy()
+    expect(holidaysArr).toHaveBeenCalledTimes(1)
+    expect(holidaysObj).toHaveBeenCalledTimes(1)
+
+    // Reset holidays cache (getter calls should iterate)
+    clearHolidaysCache(holidaysArr)
+    clearHolidaysCache(holidaysObj)
+
+    expect(checkIsHoliday(holiday1, holidaysArr)).toBeTruthy()
+    expect(checkIsHoliday(holiday2, holidaysArr)).toBeTruthy()
+    expect(checkIsHoliday(notHoliday1, holidaysObj)).toBeFalsy()
+    expect(checkIsHoliday(notHoliday2, holidaysObj)).toBeFalsy()
+    expect(holidaysArr).toHaveBeenCalledTimes(2)
+    expect(holidaysObj).toHaveBeenCalledTimes(2)
   })
 
 })
