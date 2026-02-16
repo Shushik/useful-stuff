@@ -25,7 +25,7 @@ interface IComputed {
   computer: TListener
 }
 
-interface IRefTarget<TValue = unknown> {
+interface IRefTarget<TValue extends TPrimitives> {
   value: TValue
 }
 
@@ -42,16 +42,16 @@ interface ITarget<TValue = unknown> {
 }
 
 /**
- * Active effect common object
+ * Active effect listener object
  *
- * @var {Object} activeEffect
+ * @var {Object} effectCan
  */
 let effectCan: IListener | null = null
 
 /**
- * Active computed common object
+ * Active computed listener object
  *
- * @var {Object} activeComputed
+ * @var {Object} computedCan
  */
 let computedCan: IComputed | null = null
 
