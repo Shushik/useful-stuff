@@ -9,21 +9,20 @@
  */
 type TGetter<TValue = unknown> = () => TValue
 type TProxied = WeakSet<WeakKey>
-type TWatcher<TValue = unknown> = () => IListener<TValue>
+type TStopper = () => void
 type TListener = ((...args: unknown[]) => void) | null
 type TListeners = Set<TListener | undefined>
 type TObservers = Map<string, TListeners | undefined>
 type TPrimitives = undefined | null | boolean | number | bigint | string | symbol
 
 interface IListener<TValue = unknown> {
-  observerKey?: string
-  observers?: TObservers
   target: TValue
-  listener: TListener
+  stopper?: TStopper
+  effector: TListener
 }
 
 interface IComputed {
-  listener: TListener
+  computer: TListener
 }
 
 interface IRefTarget<TValue = unknown> {
@@ -47,14 +46,14 @@ interface ITarget<TValue = unknown> {
  *
  * @var {Object} activeEffect
  */
-let activeEffect: IListener | null = null
+let effectCan: IListener | null = null
 
 /**
  * Active computed common object
  *
  * @var {Object} activeComputed
  */
-let activeComputed: IComputed | null = null
+let computedCan: IComputed | null = null
 
 /**
  * Common observers key counter
@@ -84,8 +83,8 @@ function getObserverKey(): string {
  */
 function defineListener(observers: TObservers, observerKey: string) {
   let listeners: TListeners | undefined = observers.get(observerKey)
-  const effectListener = activeEffect ? activeEffect.listener : null
-  const computedListener = activeComputed ? activeComputed.listener : null
+  const effector = effectCan ? effectCan.effector : null
+  const computer = computedCan ? computedCan.computer : null
 
   // Create list of listeners for given key
   if (!listeners) {
@@ -95,16 +94,15 @@ function defineListener(observers: TObservers, observerKey: string) {
   }
 
   // Set computed trigger listener
-  if (computedListener) {
-    listeners.add(computedListener)
+  if (computer) {
+    listeners.add(computer)
   }
 
   // Set effect listener
-  if (effectListener) {
-    listeners.add(effectListener)
+  if (effector) {
+    listeners.add(effector)
 
-    activeEffect!.observers = observers
-    activeEffect!.observerKey = observerKey
+    effectCan!.stopper = () => declineListener(observers, observerKey, effector)
   }
 }
 
@@ -222,7 +220,7 @@ function wrapObject<TValue = unknown>(
 
       // If activeEffect or activeComputed listener is set,
       // it should be added to observers list
-      if (activeComputed || (activeEffect && val === activeEffect.target)) {
+      if (computedCan || (effectCan && val === effectCan.target)) {
         defineListener(observers, `${observerKey}.${key as string}`)
       }
 
@@ -298,41 +296,23 @@ function useRef<TValue extends TPrimitives>(rawValue: TValue): IRefTarget<TValue
 function useWatch<TValue = unknown>(
   rawGetter: TGetter<TValue>,
   rawEffect: TListener
-): TWatcher<TValue> {
+): TStopper {
+// ): TWatcher<TValue> {
   const target = rawGetter()
-  const listener = rawEffect
-  const effect = { target, listener }
+  const effector = rawEffect
 
   // Set current target and listener object from where
   // listener will be taken for the further subscription
-  activeEffect = effect
+  effectCan = { target, effector }
   // Trigger value getter to run listener subscribe process
   rawGetter()
+  // Get stopper function
+  const { stopper } = effectCan
   // Reset current target and listener object
-  activeEffect = null
+  effectCan = null
 
-  // Return a getter returns watcher object for further
-  // usage in useUnwatch() function
-  return () => effect
-}
-
-/**
- * Unwatchability for reactivity
- *
- * @function useUnwatch
- * @param {Function} rawWatcher getter returned from useWatch()
- */
-function useUnwatch<TValue = unknown>(rawWatcher: TWatcher<TValue>) {
-  // Get watcher object
-  const watcher = rawWatcher()
-
-  // No need to go further
-  if (!watcher.observers || !watcher.observerKey) {
-    return
-  }
-
-  // Remove listener
-  declineListener(watcher.observers, watcher.observerKey, watcher.listener)
+  // Return a stopper function
+  return stopper!
 }
 
 /**
@@ -354,8 +334,8 @@ function useComputed<TValue = unknown>(rawGetter: TGetter<TValue>): IComputedTar
 
   // Make subscription for changes in all reactive variables
   // of given expression
-  activeComputed = {
-    listener: (newVal, oldVal) => {
+  computedCan = {
+    computer: (newVal, oldVal) => {
       if (newVal !== oldVal) {
         oldValue = newValue
         newValue = rawGetter()
@@ -371,14 +351,14 @@ function useComputed<TValue = unknown>(rawGetter: TGetter<TValue>): IComputedTar
   newValue = oldValue
 
   // Reset subscription object
-  activeComputed = null
+  computedCan = null
 
   // Create outer computed structure
   return {
     get value() {
       // If some activeEffect is set, it should be added
       // to observers list
-      if (activeEffect) {
+      if (effectCan) {
         defineListener(observers, observerKey)
       }
 
@@ -415,4 +395,4 @@ function useReactive<TValue = unknown>(rawValue: TValue): IRootTarget<TValue> {
   ) as IRootTarget<TValue>
 }
 
-export { useRef, useWatch, useUnwatch, useComputed, useReactive }
+export { useRef, useWatch, useComputed, useReactive }
